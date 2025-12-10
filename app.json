@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Allume Onboarding",
+    "slug": "allume-onboarding",
+    "scheme": "allume",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#fef6ff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f8d7ef"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
