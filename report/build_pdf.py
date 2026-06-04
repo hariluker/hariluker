@@ -11,6 +11,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table, Tab
 d=pickle.load(open('/home/user/hariluker/report/data.pkl','rb'))
 clean,s,inv,ds,toy,aged,neg,tv,sm,mp = (d['clean'],d['s'],d['inv'],d['ds'],d['toy'],
                                           d['aged'],d['neg'],d['tv'],d['sm'],d['mp'])
+milesummary,milemodel,pbtab,modelretail = d['milesummary'],d['milemodel'],d['pbtab'],d['modelretail']
 
 # ---------- palette ----------
 NAVY=colors.HexColor('#0B2545'); STEEL=colors.HexColor('#13315C'); ACCENT=colors.HexColor('#C8102E')
@@ -145,15 +146,28 @@ E+=[mktable(['Source','Units','Avg Days to Sell','% Fast (&lt;21d)'],rows,
             [2.3*inch,1.0*inch,1.7*inch,1.5*inch],['LEFT','CENTER','CENTER','CENTER'])]
 E+=[Paragraph("<b>Read:</b> trade-acquired units turn ~7 days faster than auction units and are far more likely to be fast movers. Auction inventory sits longer and erodes front gross while it ages.",BODY)]
 
-E+=[Paragraph("Mileage profile (current inventory proxy)",H3),
-    Paragraph("<i>The sold feed does not include mileage, so a true fast- vs. slow-mover mileage cut isn't possible from sales data. As the closest proxy, below is the median odometer of what's on the ground today for our fastest-turning models — this is the mileage band the market is rewarding.</i>",NOTE)]
+E+=[Paragraph("Mileage sweet spot — fast vs. slow movers (actual sold mileage)",H3)]
+fm,sm2=milesummary['fast'],milesummary['slow']
+rows=[[P('Fast movers (&lt;21 days)',CELLB),P(f"{fm['n']}",align='C'),P(f"{fm['miles']:,.0f} mi",CELLB,'C'),
+       P(f"{fm['year']:.0f}",align='C'),P(f"{fm['tradepct']:.0f}% trade",style('a',parent=CELL,textColor=GREEN,alignment=TA_CENTER)),P(usd(fm['retail']),align='C')],
+      [P('Slower movers (21+ days)',CELL),P(f"{sm2['n']}",align='C'),P(f"{sm2['miles']:,.0f} mi",CELLB,'C'),
+       P(f"{sm2['year']:.0f}",align='C'),P(f"{sm2['tradepct']:.0f}% trade",style('a',parent=CELL,textColor=AMBER,alignment=TA_CENTER)),P(usd(sm2['retail']),align='C')]]
+E+=[mktable(['Segment','Units','Median Miles','Median Yr','Source mix','Median Retail'],rows,
+            [1.95*inch,0.7*inch,1.15*inch,0.85*inch,1.1*inch,1.05*inch],
+            ['LEFT','CENTER','CENTER','CENTER','CENTER','CENTER'],hi=[(1,colors.HexColor('#E3F1E8'))])]
+E+=[Paragraph("<b>The surprise:</b> our fast movers are NOT the low-mileage units — they are <b>older, higher-mileage trade-ins</b> "
+   f"(median {fm['miles']:,.0f} mi, MY{fm['year']:.0f}, {fm['tradepct']:.0f}% trade-sourced) that we bought right and priced to market. "
+   f"The slow movers are <b>newer, lower-mileage auction units</b> (median {sm2['miles']:,.0f} mi, MY{sm2['year']:.0f}) sitting on thin front gross. "
+   "Mileage is not the gating factor — <b>acquisition source and price-to-market are.</b> Don't shy away from a higher-mile trade that pencils.",BODY)]
+E+=[Paragraph("Mileage sweet spot by model (Toyota core, median of sold units)",H3)]
 rows=[]
-for m,r in mp.sort_values('Odo').iterrows():
-    if m in ['Land','Grand']: continue
-    rows.append([P(m,CELLB),P(f"{int(r['n'])}",align='C'),P(f"{r['Odo']:,.0f} mi",align='C')])
-E+=[mktable(['Model','In Stock','Median Odometer'],rows[:8],
-            [2.0*inch,1.2*inch,1.8*inch],['LEFT','CENTER','CENTER'])]
-E+=[Paragraph("Sweet spot on our quick-turn models (4Runner, RAV4, Tacoma, Highlander) clusters around <b>30,000–35,000 miles</b>. Camry/Sienna tolerate higher (42k–46k). Corolla buyers accept 55k+.",BODY)]
+for m,r in milemodel.sort_values('Days').iterrows():
+    rows.append([P(m,CELLB),P(f"{int(r['n'])}",align='C'),P(f"{r['Miles']:,.0f} mi",align='C'),
+                 P(usd(r['Retail']),align='C'),P(f"{r['Days']:.0f}",align='C')])
+E+=[mktable(['Model','Units','Median Miles Sold','Median Retail','Avg Days'],rows,
+            [1.6*inch,0.85*inch,1.5*inch,1.2*inch,1.0*inch],['LEFT','CENTER','CENTER','CENTER','CENTER'])]
+E+=[Paragraph("Within a model, the bands that actually move: <b>4Runner ~40k mi</b>, <b>Tacoma/Prius ~35k</b>, <b>RAV4 ~30k</b>, "
+   "while <b>Sienna and Highlander</b> retail fine up to <b>65k–80k mi</b>. Buy to the band the nameplate supports rather than chasing the lowest odometer.",BODY)]
 
 # ===== REPORT 2 GROSS =====
 E+=[PageBreak(),secbar("REPORT 2 — GROSS PROFIT (front, back &amp; total)"),Spacer(1,6)]
@@ -191,6 +205,19 @@ rows=[[P(i,CELLB),P(f"{int(r['n'])}",align='C'),P(usd(r['F']),align='C'),P(usd(r
 E+=[Paragraph("Average gross by model-year band (all units)",H3),
     mktable(['Year Range','Units','Avg Front','Avg Back','Avg Total'],rows,
             [1.7*inch,0.9*inch,1.2*inch,1.2*inch,1.25*inch],['LEFT','CENTER','CENTER','CENTER','CENTER'])]
+
+# Price band (real retail)
+rows=[]
+for pb,r in pbtab.iterrows():
+    rows.append([P(pb,CELLB),P(f"{int(r['n'])}",align='C'),P(f"{r['Days']:.0f}",align='C'),
+                 P(usd(r['F']),align='C'),P(usd(r['B']),align='C'),P(usd(r['T']),CELLB,'C'),P(f"{r['Mi']:,.0f}",align='C')])
+E+=[Paragraph("Average gross by price band (actual retail price)",H3),
+    mktable(['Price Band','Units','Avg Days','Avg Front','Avg Back','Avg Total','Med. Miles'],rows,
+            [1.3*inch,0.7*inch,0.85*inch,1.0*inch,1.0*inch,1.05*inch,1.1*inch],
+            ['LEFT','CENTER','CENTER','CENTER','CENTER','CENTER','CENTER'])]
+E+=[Paragraph("Total gross rises with price point — the <b>$30k–$50k</b> band is the profit core (avg total ~$4,200–$4,500). "
+   "The <b>$20k–$30k</b> band is the danger zone: thin front ($552) on newer, low-mile units (these are the auction late-models that sit). "
+   "Cheaper <b>sub-$20k</b> high-mileage trades actually hold the best <i>front</i> gross ($2,162).",BODY)]
 
 # Top gross units beating store avg
 E+=[Paragraph(f"Units that beat the store average total gross ({usd(SA_T)})",H3)]
@@ -258,9 +285,9 @@ E+=[Paragraph(f"*Source inferred (no sales appraiser on record → auction/whole
 # ===== BUYER'S TARGET LIST =====
 E+=[PageBreak(),secbar("BUYER'S TARGET LIST — what to chase"),Spacer(1,6)]
 E+=[Paragraph("Ranked buy list: fast movers + above-average gross + thin in stock",H3),
-    Paragraph("Ideal acquisition price = current retail (market asking) − target front gross. Preferred source is whichever grossed better on the sold data.",NOTE)]
+    Paragraph("Ideal acquisition price = actual median sold retail − target front gross (preferred source). Preferred source is whichever grossed better on the sold data.",NOTE)]
 
-ask=inv[inv.Make=='Toyota'].groupby('Model')['Asking'].median()
+ask=modelretail
 def srcrow(m,src): 
     g=clean[(clean.Make=='Toyota')&(clean.Model==m)&(clean.Source==src)]; return g
 def dsval(m):
@@ -336,7 +363,7 @@ E+=[Spacer(1,10),HRFlowable(width='100%',thickness=0.6,color=MGREY),Spacer(1,4),
 notes=[
  f"Sources: \"sold units – 30 days\" ({len(s)} sold records) and \"current inventory 6-4\" ({len(inv)} in-stock units).",
  "Days-to-sell uses the sold feed's Vehicle Age (days in inventory). 4 outliers with front gross beyond ±$15k (a +$52.6k Sienna, two +$20k Camrys, and a −$33.4k RAV4) are excluded from all averages as data-entry anomalies; counts include them.",
- "The sold feed does NOT contain mileage, sale price, trim, or unit cost. Therefore: mileage analysis uses current-inventory odometer as a proxy; price-band analysis uses model-year bands; and buy-list acquisition prices anchor on current-inventory median asking price minus target front gross. These substitutions are labeled where used.",
+ "Mileage, retail sale price, and acquisition source now come directly from the sold feed (actuals, not proxies). Price bands use real retail price; the mileage analysis uses actual sold odometer; buy-list acquisition prices anchor on each model's median actual sold retail minus the target front gross. A few sold records with a blank/$0 retail price are excluded from price-band and acquisition math only.",
  "Current-inventory acquisition source is INFERRED (a recorded sales appraiser → trade; otherwise auction/wholesale) because the inventory feed has no explicit source field. Sold-unit source uses the feed's Source Type and is exact.",
  "Model groupings normalize trims to the base nameplate (e.g., Camry XSE → Camry, Tacoma 4WD → Tacoma).",
 ]

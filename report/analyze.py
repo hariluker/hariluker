@@ -1,7 +1,7 @@
 import pandas as pd, numpy as np, re, warnings, json
 warnings.filterwarnings('ignore')
 
-SOLD='/root/.claude/uploads/0795adae-e827-4a1c-b9e2-98ab9993cb13/f86993be-sold_units__30_days.csv'
+SOLD='/root/.claude/uploads/0795adae-e827-4a1c-b9e2-98ab9993cb13/864b92b4-sold_units_30_days.csv'
 INV ='/root/.claude/uploads/0795adae-e827-4a1c-b9e2-98ab9993cb13/78bd985e-current_inventory_64.xls'
 
 def money(x):
@@ -18,6 +18,8 @@ s['Front']=s['Front Gross'].map(money)
 s['Back']=s['Back Gross'].map(money)
 s['Total']=s['Front']+s['Back']
 s['Days']=pd.to_numeric(s['Vehicle Age'],errors='coerce')
+s['Retail']=s['Retail Price'].map(money).replace(0,np.nan)
+s['Miles']=pd.to_numeric(s['Mileage'],errors='coerce')
 s['Make']=s['Make'].str.strip().str.title()
 s['ModelRaw']=s['Model'].str.strip()
 # base model normalization
@@ -130,8 +132,42 @@ print("\n=== MILEAGE PROFILE current inv by model (Toyota n>=2) ===")
 mp=inv[inv['Make']=='Toyota'].groupby('Model').agg(n=('Odo','size'),Odo=('Odo','median')).query('n>=2').sort_values('Odo')
 print(mp.round(0).to_string())
 
+# --- REAL mileage (now in sold feed) ---
+fast=clean[clean['Days']<21]; slow=clean[clean['Days']>=21]
+milesummary={
+ 'fast':{'n':len(fast),'miles':fast['Miles'].median(),'year':fast['Year'].median(),
+         'tradepct':(fast['Source']=='Trade').mean()*100,'retail':fast['Retail'].median()},
+ 'slow':{'n':len(slow),'miles':slow['Miles'].median(),'year':slow['Year'].median(),
+         'tradepct':(slow['Source']=='Trade').mean()*100,'retail':slow['Retail'].median()},
+}
+print("\n=== REAL MILEAGE fast vs slow ==="); print(milesummary)
+# mileage by Toyota model (real)
+milemodel=clean[clean['Make']=='Toyota'].groupby('Model').agg(
+    n=('Miles','size'),Miles=('Miles','median'),Retail=('Retail','median'),Days=('Days','mean')).query('n>=3').sort_values('Miles')
+print(milemodel.round(0).to_string())
+
+# --- PRICE BANDS (real retail) ---
+def pband(p):
+    if pd.isna(p): return 'Unknown'
+    if p<20000: return 'Under $20k'
+    if p<30000: return '$20k–$30k'
+    if p<40000: return '$30k–$40k'
+    if p<50000: return '$40k–$50k'
+    return '$50k+'
+clean['PB']=clean['Retail'].map(pband)
+pborder=['Under $20k','$20k–$30k','$30k–$40k','$40k–$50k','$50k+']
+pbtab=clean[clean['PB']!='Unknown'].groupby('PB').agg(
+    n=('Total','size'),Days=('Days','mean'),F=('Front','mean'),B=('Back','mean'),
+    T=('Total','mean'),Mi=('Miles','median')).reindex([p for p in pborder])
+pbtab=pbtab.dropna(subset=['n'])
+print("\n=== PRICE BANDS (real retail) ==="); print(pbtab.round(0).to_string())
+
+# model median sold retail for buy-list anchor
+modelretail=clean[clean['Make']=='Toyota'].groupby('Model')['Retail'].median()
+
 # Save objects for PDF
 import pickle
 pickle.dump({'clean':clean,'s':s,'inv':inv,'ds':ds,'toy':toy,'aged':aged,'neg':neg,
-             'tv':tv,'sm':sm,'mp':mp}, open('/home/user/hariluker/report/data.pkl','wb'))
+             'tv':tv,'sm':sm,'mp':mp,'milesummary':milesummary,'milemodel':milemodel,
+             'pbtab':pbtab,'modelretail':modelretail}, open('/home/user/hariluker/report/data.pkl','wb'))
 print("\nSAVED pickle.")
