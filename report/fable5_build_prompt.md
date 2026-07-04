@@ -9,22 +9,103 @@ replaces a manual spreadsheet/PDF workflow. Managers upload two kinds of files �
 existing reference PDF report (attached/described below), but as a live,
 filterable, persistent web dashboard with a PDF export button.
 
-This is v1 for a single dealership. No login, no billing, no multi-tenant UI.
-But design the database schema so a `dealership_id` scaffold exists cleanly —
-this app is expected to eventually be handed to other dealerships as separate
+This is v1 for a single dealership, gated behind a simple login (see
+Authentication below), with no billing and no multi-tenant UI. But design the
+database schema so a `dealership_id` scaffold exists cleanly — this app is
+expected to eventually be handed to other dealerships as separate
 deployments/tenants, so don't paint the data model into a single-store corner,
 even though you won't build any tenant-switching UI now.
+
+**The single most important non-functional requirement: this is for car
+people, not software people.** Every screen should be usable with zero
+training. See "Design Language & UX Principles" below — treat it as
+load-bearing, not decoration.
 
 ## Tech stack (locked — do not deviate)
 
 - **Framework:** Next.js (App Router, TypeScript)
 - **Database:** Supabase (Postgres)
+- **Auth:** Supabase Auth (email + password) — use its built-in user
+  management rather than hand-rolling sessions/password hashing. This keeps
+  the auth gate a thin layer, not a subsystem.
 - **Hosting:** Vercel
 - **PDF generation:** a pure-JS/TS renderer (e.g. `@react-pdf/renderer`) — avoid
   headless-Chrome/Puppeteer approaches, they're brittle in Vercel's serverless
   environment.
-- No auth provider needed for v1 (no login), but don't hardcode secrets/URLs —
-  use environment variables the standard Next.js/Vercel way.
+- Don't hardcode secrets/URLs — use environment variables the standard
+  Next.js/Vercel way.
+
+## Authentication & Access (keep this minimal — do not overbuild)
+
+The whole app sits behind a login screen. Scope it as small as it can
+possibly be while still working:
+
+- Use **Supabase Auth** email/password login — do not build custom auth.
+- **No public sign-up.** Accounts are created by invitation only.
+- A `profiles` table (one row per Supabase Auth user): `user_id`,
+  `display_name`, `is_admin` (bool). Any logged-in user gets full access to
+  upload, filter, and view every report — **do not build granular
+  roles/permissions**, this is a small trusted team, not an enterprise
+  hierarchy.
+- **One simple "Team" settings page**, visible to `is_admin` users only: a
+  form to invite a new teammate by email (Supabase Auth's invite/magic-link
+  flow handles the actual account creation and password-set step — don't
+  build a custom invite-email system). The first user (seeded at deploy) is
+  `is_admin = true` by default so there's always at least one person who can
+  invite others.
+- That's the entire auth scope. No SSO, no 2FA, no password-reset UI beyond
+  whatever Supabase Auth gives you out of the box, no session-timeout tuning.
+  If you find yourself building anything beyond "log in, log out, invite a
+  teammate," stop — that's scope creep for v1.
+
+## Design Language & UX Principles (treat as load-bearing, not decoration)
+
+The audience is dealership managers and buyers — not software people. Nobody
+gets a training session. If a user can't figure out what to do within a few
+seconds of landing on a screen, the design has failed regardless of how
+correct the underlying analytics are. Aim for the feel of **Apple or
+Spotify**: calm, confident, uncluttered, obvious.
+
+Concrete rules to build to, not just vibes:
+
+- **One primary action per screen.** The upload page's job is "upload a
+  file," not "upload a file, also configure seventeen settings." Anything
+  that isn't the primary action gets visually de-emphasized or tucked behind
+  a secondary/advanced disclosure, not presented with equal weight.
+- **The column-mapping wizard must default to invisible on the happy path.**
+  Auto-detect columns silently; when confidence is high, show the user a
+  single "Looks good — Import" confirmation, not a grid of dropdowns to
+  review. Only expand into manual per-column mapping when auto-detection is
+  genuinely unsure or a required field is missing. Most uploads should be:
+  drop file → confirm → done, in under 10 seconds.
+  <br>Manual re-mapping should still be genuinely one click away for the
+  cases it's needed (a new DMS export, a renamed column) — it's tucked out of
+  the way, not removed. Never silently guess wrong and hide the fact that it
+  guessed.
+- **Plain language, zero jargon.** "Fast Movers" not "sub-21-day velocity
+  quantile." "What to buy next" not "acquisition target optimization
+  matrix." Every number on screen should be legible to someone who has never
+  seen this app before and has no analytics background — a manager should be
+  able to read a table and immediately know what to do about it.
+- **Generous white space, a restrained color palette, and one clear accent
+  color** for calls-to-action and the most important flag (e.g. "buy this" /
+  "don't buy this") — not a dashboard where everything is a different color
+  and nothing stands out. Reuse the reference PDF's palette (navy, steel,
+  a red accent for urgency/negative, green for positive) as the starting
+  point, but apply it with restraint — a handful of colors used consistently,
+  not a chart-library rainbow.
+- **Numbers before tables, tables before charts.** Lead every report section
+  with the 2-4 numbers that actually matter (KPI-tile style), let the
+  detailed table exist for whoever wants to dig in, and only add a chart
+  where it genuinely clarifies something a number or table can't — don't
+  chart for the sake of it.
+- **Mobile-usable, not just mobile-responsive**, especially for the Live
+  Acquisition Lookup — big touch targets, no dense multi-column tables that
+  require horizontal scrolling on a phone.
+- **The whole path from login → upload → "here's what to buy" should require
+  no more than a handful of clicks and zero reading of instructions.** If a
+  first-time user needs a tooltip or help text to understand what a screen
+  does, simplify the screen instead of adding the tooltip.
 
 ## Reference materials
 
@@ -141,6 +222,8 @@ click a row and manually set its acquisition source).
 
 ## Data model (Supabase/Postgres — suggested shape, adjust as needed)
 
+- `profiles` — user_id (FK to Supabase Auth's `auth.users`), display_name,
+  is_admin (bool). One row per invited teammate; see Authentication above.
 - `dealerships` — id, name (single seed row for now; future-proofing only)
 - `datasets` — id, dealership_id, type (`sold_units` | `inventory`),
   window_days (30/60/90/120, null for inventory), period_label,
@@ -339,7 +422,9 @@ database requiring a first upload before anything is visible.
 
 ## Out of scope for v1 (do not build)
 
-- Login/authentication of any kind
+- Public self-serve sign-up (accounts are invite-only, see Authentication)
+- Granular roles/permissions beyond the single `is_admin` flag
+- SSO, 2FA, or any custom auth beyond Supabase Auth's built-in flows
 - Multi-dealership account switching, billing, or signup flows
 - Any external DMS API integration (file upload only)
 
@@ -376,3 +461,16 @@ database requiring a first upload before anything is visible.
       existing data in under a couple of seconds, works on a phone-sized
       screen, and never introduces calculation logic that diverges from the
       main dashboard's numbers.
+- [ ] The app is unreachable without logging in; there is no public sign-up
+      page; a new teammate can only be added via the Team settings page by an
+      `is_admin` user, using Supabase Auth's invite flow (no custom
+      invite-email system built).
+- [ ] A first-time user with zero instructions can go from login to "here's
+      what to buy" using only the seeded data, without needing to ask what
+      any button or label means.
+- [ ] The default file upload path (using the seed files' column layout)
+      requires no manual column mapping — auto-detection alone gets it to a
+      one-click "Looks good — Import" confirmation.
+- [ ] No screen has more than one visually-primary call-to-action; anything
+      secondary (settings, advanced remapping, admin tools) is visibly
+      de-emphasized or tucked behind a secondary control.
