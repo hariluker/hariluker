@@ -75,13 +75,24 @@ Notes on this file's real-world quirks the app must handle:
 ### File type 2 — Current Inventory (a point-in-time snapshot)
 
 This is a wide export (~70 columns) from the dealer's inventory management
-system. Only these matter for the app; ignore the rest but don't error on their
+system. These matter for the app; ignore the rest but don't error on their
 presence:
 
 ```
 Age, Vehicle (e.g. "2024 Toyota Camry SE" — parse Year/Make/Model/Trim out of
 this single string), Stock #, VIN, Odometer, Price, Cost, AskingPrice,
 Appraiser, Appr. Salesperson, Reconditioning Cost
+```
+
+Plus, **optionally** (present in this dealer's export, but not guaranteed in
+others — parse when present, gracefully omit the resulting UI/report elements
+when absent, never error on their absence):
+
+```
+AutoTrader.com List Price, AutoTrader.com SRP, AutoTrader.com VDP,
+AutoTrader.com % VDP, Cars.com List Price, Cars.com SRP, Cars.com VDP,
+Cars.com % VDP, CarGurus List Price, CarGurus SRP, CarGurus VDP,
+CarGurus % VDP, nVision Prob.toSell
 ```
 
 - `Vehicle` is a single free-text field like `"2025 Toyota 4Runner SR5"` —
@@ -91,6 +102,17 @@ Appraiser, Appr. Salesperson, Reconditioning Cost
 - `Stock #` is the field that carries the acquisition-source suffix (see below)
   — this is the **authoritative** source signal for inventory-file rows.
 - `Cost` is frequently blank for very new arrivals — treat as missing, not zero.
+- The optional market-demand fields (SRP = search-results-page impressions,
+  VDP = vehicle-detail-page clicks, %VDP = click-through rate, nVision
+  Prob.toSell = a third-party probability-to-sell score) are **leading**
+  indicators of market interest, unlike everything else in this app which is
+  backward-looking (what already sold). Store them on `inventory_units` as
+  nullable fields. Surface a simple "Market Interest" indicator (e.g. derived
+  from %VDP and/or nVision score, bucketed High/Medium/Low) in the Inventory
+  Health section and as a secondary signal on the Buyer's Target List — e.g.
+  flag "thin stock + high market interest" as a stronger buy signal than thin
+  stock alone, and flag "healthy stock + low market interest" as an early
+  warning that demand may be softening before it shows up in sales data.
 
 ## Acquisition-source classification (critical business logic)
 
@@ -130,7 +152,13 @@ click a row and manually set its acquisition source).
   acquisition_note, is_outlier (bool)
 - `inventory_units` — dataset_id FK, year, make, model, trim, stock_number,
   vin, odometer, asking_price, cost, age_days, acquisition_source,
-  acquisition_note, appraiser, salesperson
+  acquisition_note, appraiser, salesperson, market_list_price (nullable, best
+  available of AutoTrader/Cars.com/CarGurus), market_vdp_pct (nullable),
+  market_prob_to_sell (nullable), market_interest_bucket (nullable,
+  High/Medium/Low derived from the above)
+- `settings` — single-row config table: `fast_mover_days` (default 21),
+  `aged_unit_days` (default 60), `flat_recon_cost` (default 1600, USD, one
+  store-wide number, not per-unit/per-model — see Buyer's Target List below)
 - `acquisition_source_rules` — suffix, source_label, note (seeded per table
   above, editable)
 
@@ -160,17 +188,71 @@ recent inventory snapshot:
    stock); aged-unit flags for every in-stock unit over a configurable
    threshold (default 60 days) with model, age, asking price, cost,
    acquisition source, and total capital tied up.
-4. **Buyer's Target List** — rank models that are simultaneously fast movers,
-   above-average gross, and thin in current stock; for each, compute an ideal
-   acquisition price range (median actual sold retail price for that model
-   minus a target front-gross band) and the preferred acquisition source
-   (whichever source produced better total gross for that model).
+4. **Buyer's Target List** — this is the highest-stakes output in the app, so
+   get the ranking metric right:
+   - **Primary rank: total gross ÷ days-to-sell** (a capital-velocity metric,
+     not raw average gross). A car that grosses less but turns faster recycles
+     floorplan capital more times per month, which is what actually compounds
+     into more monthly units sold — that's the real growth lever, not just
+     fat single-unit checks. Still filter candidates to require thin current
+     stock (see Inventory Health bands) so the list stays a genuine buy
+     signal, not just "whatever turns fastest regardless of supply."
+   - **Show front gross and back gross broken out separately** next to the
+     ranking, not just blended into the total. Back gross is largely a
+     function of F&I execution and the specific buyer's financing/warranty
+     attach on that deal, not the vehicle itself — a model can rank well
+     because of one lucky F&I-heavy deal. Surfacing the split lets a manager
+     see whether a model's ranking is a real vehicle-level signal (strong
+     front gross) or an F&I artifact (gross carried mostly by back-end),
+     without hiding that distinction inside one blended number.
+   - **Flag low-sample-size models** (fewer than 5 sold units in the selected
+     window) as "directional, low sample" rather than a confident
+     recommendation — a model with n=2-3 units can look like a great or
+     terrible buy purely from one outlier deal; don't let the UI present that
+     with the same confidence as a model with n=15+.
+   - **Ideal acquisition price** = median actual sold retail price for that
+     model in the current window − target front-gross band − a single flat
+     store-wide recon-cost assumption (`settings.flat_recon_cost`, default
+     $1,600 — this dealership doesn't want per-unit or per-model recon detail,
+     just one constant subtracted uniformly; make it editable in settings, not
+     hardcoded, since other dealers will have a different average).
+   - **Preferred acquisition source** = whichever source produced better total
+     gross ÷ days-to-sell for that model (consistent with the primary rank
+     above), not just better raw gross.
+   - Where the optional market-interest fields are present (see Inventory
+     File §2), factor them in as a secondary flag: thin stock + high market
+     interest strengthens the buy signal; healthy/heavy stock + low market
+     interest is a soft early-warning that demand may be cooling before it
+     shows up in sales history.
+   - **Do not let this list recommend blanket avoidance of an otherwise
+     strong-selling nameplate just because one acquisition source lost money
+     on it** (see Do Not Buy below) — that's frequently a bid-discipline
+     problem on a specific source, not a demand problem on the model.
 5. **Do Not Buy list** — slow movers, weak/negative gross, or overstocked
    models, calling out when a specific acquisition source is the driver of the
    losses (this dealership's real pattern: auction units of the same nameplate
    that's profitable on trade often lose money — surface this kind of
    source-vs-model interaction automatically, don't hardcode it to specific
-   models).
+   models). **Important nuance:** when a model is profitable overall (e.g. via
+   trade) but loses money specifically through one acquisition source (e.g.
+   auction), the correct recommendation is "cap the max bid / stop overpaying
+   via [source]," not "stop buying this model" — a source-specific
+   overpayment problem is a bid-discipline fix, not a demand problem, and
+   blanket-avoiding an otherwise strong nameplate would cost real inventory.
+   Only recommend full avoidance when the model is weak across *all* sources.
+
+### Known limitations to surface in the UI, not hide
+
+- **Survivorship bias**: this app only ever sees units the store decided to
+  retail. A trade appraised so poorly it was immediately wholesaled never
+  appears in sold-units data as a bad trade — it just doesn't exist in the
+  dataset. Add a one-line disclaimer on the Gross Profit and Buyer's Target
+  List views: recommendations reflect retailed units only, not the full
+  universe of trades/auction units considered.
+- **Small samples**: as noted above, flag any model-level stat built from
+  fewer than 5 units as low-confidence in the UI (e.g. a muted badge or
+  asterisk), everywhere it appears — Velocity, Gross Profit, and the Buyer's
+  Target List alike.
 
 ## Interactive dashboard requirements
 
@@ -190,6 +272,37 @@ recent inventory snapshot:
   window-length exist, show simple before/after or line-chart comparison of
   headline metrics (avg total gross, avg days-to-sell, days supply) across
   upload dates.
+  - **Overlapping-window dedup**: a 30-day and a 90-day upload from the same
+    week will share ~30 days of the same units. Any view that aggregates
+    "across all snapshots" (rather than viewing one snapshot at a time) must
+    dedup by VIN/stock-number + sale date before summing — otherwise volume
+    and averages silently inflate. If true dedup is too complex for v1, it's
+    acceptable to simply *not* offer an "all-time combined" aggregate view at
+    all and only ever show one selected snapshot at a time — just don't ship
+    a naive sum-across-snapshots view, it will produce wrong numbers.
+
+## Live Acquisition Lookup (mobile-friendly, keep this simple)
+
+A single lightweight page, not a new subsystem — this must reuse the exact
+same aggregates already computed for the Buyer's Target List, not introduce
+new calculation logic or any live/external data feed (no real-time auction
+integration, no bidding automation). Goal: something a buyer can pull up on
+their phone at an auction, or an appraiser can glance at during a trade
+negotiation, in the time it takes to type a model name.
+
+- Simple form: select Make → Model → (optional) Trim, optional mileage input.
+- Returns, instantly, from already-computed data (no new queries beyond what
+  the dashboard already runs): recommended max acquisition price band (same
+  formula as the Buyer's Target List: median sold retail − target front-gross
+  band − flat recon assumption), average days-to-sell for that model,
+  preferred acquisition source, current days-supply status (thin/healthy/
+  heavy/overstocked), and the low-sample-size flag if applicable.
+- Mobile-responsive layout (single column, large touch targets, minimal
+  typing) — this is meant to be used standing at an auction lot or a trade
+  desk, not at a workstation.
+- If this turns out to add meaningful complexity or bug risk beyond a thin
+  read-only view over existing aggregates, it's fine to cut for v1 and ship it
+  as a fast-follow — do not let it block or destabilize the core dashboard.
 
 ## Upload flow / column-mapping wizard
 
@@ -247,3 +360,19 @@ database requiring a first upload before anything is visible.
       palette, KPI tiles, section tables, executive summary).
 - [ ] Aged-unit and days-supply calculations use the exact formulas specified
       above, not approximations.
+- [ ] Buyer's Target List is primarily sorted by total gross ÷ days-to-sell,
+      with front/back gross shown separately alongside it.
+- [ ] Ideal acquisition price subtracts the flat recon-cost setting (default
+      $1,600) from median sold retail minus target front gross.
+- [ ] Models with fewer than 5 sold units in the selected window are visibly
+      flagged as low-sample/directional everywhere they appear.
+- [ ] A model that's profitable overall but loses money via one specific
+      acquisition source is flagged as "cap bid via [source]," not blanket
+      "do not buy."
+- [ ] Uploading two overlapping-window snapshots (e.g. 30-day and 90-day in
+      the same week) does not silently double-count units in any combined/
+      trend view.
+- [ ] The Live Acquisition Lookup page returns a result for a model with
+      existing data in under a couple of seconds, works on a phone-sized
+      screen, and never introduces calculation logic that diverges from the
+      main dashboard's numbers.
