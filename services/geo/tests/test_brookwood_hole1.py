@@ -34,13 +34,22 @@ def test_hole1_centerline_matches_scorecard(hole):
     assert cl_yd == pytest.approx(520, rel=0.07)
 
 
-def test_hole1_detected_features_await_verification(hole):
-    # The calibration output is machine-derived: everything must be flagged
-    # as detected and unreviewed until the product owner confirms it.
+def test_hole1_verification_reflects_owner_review(hole):
+    # 2026-08-08 product-owner review: tee position corrected (initial
+    # hypothesis was the 10th tee), green/pin/centerline confirmed, two
+    # greenside + one left-fairway bunker confirmed, dogleg suggestions
+    # left unreviewed. Nothing may be silently unverified except those.
+    assert hole.tee.verification == Verification.CORRECTED
+    assert hole.tee.provenance == Provenance.USER_ADJUSTED
+    assert hole.green.verification == Verification.CONFIRMED
+    assert hole.pin.verification == Verification.CONFIRMED
+    assert hole.centerline.verification == Verification.CONFIRMED
+    unreviewed = [f.name for f in hole.features
+                  if f.verification == Verification.UNREVIEWED]
+    assert set(unreviewed) == {"dogleg right cluster N", "dogleg right cluster S"}
     for f in hole.features:
-        assert f.provenance == Provenance.DETECTED
-        assert f.verification == Verification.UNREVIEWED
-        assert f.confidence is not None
+        if f.provenance == Provenance.DETECTED:
+            assert f.confidence is not None
 
 
 def test_hole1_has_required_features(hole):

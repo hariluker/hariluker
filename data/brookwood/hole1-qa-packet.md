@@ -1,7 +1,7 @@
 # Brookwood GC Hole 1 — Phase 1 Calibration QA Packet
 
 **Date:** 2026-08-08
-**Status:** Geometry calibrated and validation-PASSING; awaiting product-owner confirmation (the §11 human gate). All features carry `provenance=detected`, `verification=unreviewed`.
+**Status:** VERIFIED — product-owner review completed 2026-08-08; corrections applied; validation PASS. Remaining unreviewed suggestions: the two dogleg-cluster bunkers only.
 
 ---
 
@@ -33,18 +33,18 @@ The original assignment (A=tee, B=green) failed validation exactly as designed: 
 
 Derived by visual analysis of imagery + lidar local-relief (tee pads/greens are built platforms), constrained by the 520-yd scorecard:
 
-- **Blue tee:** circular built pad at the southeast end of the corridor, beside the entrance drive and practice green, NE of the maintenance buildings (EPSG:2967 ≈ 465206, 2091657).
+- **Blue tee (owner-corrected):** the circular pad initially proposed is the **10th tee**; the 1st tee is the large oval pad immediately east of it, between the cart path and the parking lot (EPSG:2967 ≈ 465290, 2091665; marker placed west-center of the pad).
 - **Fairway:** runs WNW from the tee, through A's landing zone, with a gentle dogleg right (~15°) at the bunker cluster.
-- **Green:** the northeast oval of the complex at ≈ (464074, 2092735) — 479 m², guarded by a double bunker southeast (approach side) and two front bunkers; pin defaulted to green center (contains point B).
-- **Bunkers:** 5 traced as low-confidence suggestions (2 dogleg, 3 greenside) — outlines are approximate and expected to be adjusted in the editor.
+- **Green (owner-confirmed):** the northeast oval of the complex at ≈ (464074, 2092735) — 479 m²; pin defaulted to green center (contains point B). The southwest oval is the **12th green**.
+- **Bunkers (owner-corrected):** exactly 2 greenside (the SE double and the front-right); the initially marked "front left" bunker belongs to hole 12 (its right-side bunker) and was removed. One additional owner-reported bunker added on the left of the fairway ~2/3 up (≈ 464305, 2092338, beside the neighboring green). The two dogleg-right cluster suggestions remain unreviewed.
 - **Elevation:** essentially flat — tee 240.8 m, green 241.1 m (+0.3 m), mild mid-hole rise to 242.7 m (lidar DEM profile).
 
 ## 5. Validation result (engine output)
 
 ```
 Brookwood Golf Club hole 1 (Blue tee): overall PASS
-  [PASS] straight_line_vs_scorecard: 522 yd straight vs 520 yd scorecard
-  [PASS] centerline_vs_scorecard:    528 yd routed (within 7%)
+  [PASS] straight_line_vs_scorecard: 540 yd straight vs 520 yd scorecard
+  [PASS] centerline_vs_scorecard:    550 yd routed (within 7%)
   [PASS] centerline_endpoints:       starts at tee, ends on green
   [PASS] par_vs_yardage:             520 yd conventional par 5
   [PASS] green_sanity:               valid polygon, 479 m², pin inside
@@ -52,14 +52,19 @@ Brookwood Golf Club hole 1 (Blue tee): overall PASS
   [PASS] degeneracy:                 all geometry well-formed
 ```
 
-Routed 528 yd vs 522 straight ⇒ nearly straight hole with a slight dogleg right — consistent with the app screenshot's "visually clear routing."
+Routed 550 yd vs 540 straight ⇒ nearly straight hole with a slight dogleg right. The measured length runs ~5% over the 520 scorecard — within tolerance; scorecards typically measure from permanent mid-pad markers along the intended playing line, and the marker was placed at the pad's west-center. Not a blocker.
 
-## 6. What needs human confirmation (the gate)
+## 6. Human gate outcome (2026-08-08 review)
 
-1. **Blue tee position** — is the circular pad NE of the maintenance area the Blue/tip tee? (Alternative: tees hidden in the lawn strip west of the clubhouse; no pads visible there in imagery or lidar relief.)
-2. **Green identity** — the green complex has two adjacent ovals; the hypothesis (and point B) selects the northeast one. Confirm hole 1 uses it (the southwest oval would then belong to another hole or be a double-green section).
-3. **Bunker outlines** — 5 suggestions need visual adjustment in the editor.
-4. **Left of centerline** — whether the opening 200 yd crosses rough or mowed fairway (affects camera framing, not distances).
+| Item | Owner verdict | Action taken |
+|---|---|---|
+| Blue tee = circular pad | **Wrong — that is the 10th tee**; 1st tee is just east of it | Tee moved to the oval pad east of the circle; provenance `user_adjusted`, verification `corrected` |
+| Green = NE oval | **Correct** | Verification `confirmed` |
+| Greenside bunkers | Only 2 exist; the leftmost marking is the **12th hole's right-side bunker** | Removed the 12th's bunker; SE double + front right `confirmed` |
+| Fairway-left bunker ~2/3 up | **Missing from the map** | Traced and added, `confirmed` |
+| Course currency | Hole unchanged since 2024 imagery | Imagery vintage accepted |
+
+Still open (non-blocking): the two dogleg-right bunker outlines remain `unreviewed`; adjust or confirm in the editor when it exists.
 
 ## 7. Reproduction
 

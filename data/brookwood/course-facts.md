@@ -18,3 +18,12 @@ scorecard when directly reachable):
 - A creek meanders through the course, in play on six holes
 - Hole 1 routing direction: not stated by any source — to be determined from
   licensed imagery during calibration
+
+## Owner-verified facts (2026-08-08 review of calibration overlay)
+
+- The circular pad NE of the maintenance buildings is the **10th tee**;
+  the **1st tee** is the oval pad immediately east of it
+- Hole 1 green = NE oval of the two-green complex; the SW oval is the
+  **12th green** (its right-side bunker sits front-left of the 1st green)
+- Hole 1 bunkers: 2 greenside + 1 left-fairway ~2/3 up
+- Hole 1 unchanged on the ground vs the 2024 imagery

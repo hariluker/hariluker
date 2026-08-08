@@ -10,22 +10,22 @@
       "name": "Blue",
       "coords": [
         [
-          40.989753924822665,
-          -85.16997183467747
+          40.989774570351734,
+          -85.1696674073174
         ]
       ],
-      "elevation_m": 240.78637961963423,
-      "provenance": "detected",
-      "confidence": 0.7,
-      "verification": "unreviewed"
+      "elevation_m": 240.8503944449295,
+      "provenance": "user_adjusted",
+      "confidence": null,
+      "verification": "corrected"
     },
     {
       "type": "fairway_centerline",
       "name": null,
       "coords": [
         [
-          40.989753924822665,
-          -85.16997183467747
+          40.989774570351734,
+          -85.1696674073174
         ],
         [
           40.99014914938633,
@@ -59,7 +59,7 @@
       "elevation_m": null,
       "provenance": "detected",
       "confidence": 0.75,
-      "verification": "unreviewed"
+      "verification": "confirmed"
     },
     {
       "type": "green",
@@ -101,7 +101,7 @@
       "elevation_m": 241.08509686745936,
       "provenance": "detected",
       "confidence": 0.8,
-      "verification": "unreviewed"
+      "verification": "confirmed"
     },
     {
       "type": "pin",
@@ -115,7 +115,7 @@
       "elevation_m": null,
       "provenance": "detected",
       "confidence": 0.8,
-      "verification": "unreviewed"
+      "verification": "confirmed"
     },
     {
       "type": "bunker",
@@ -205,37 +205,7 @@
       "elevation_m": null,
       "provenance": "detected",
       "confidence": 0.55,
-      "verification": "unreviewed"
-    },
-    {
-      "type": "bunker",
-      "name": "green front left",
-      "coords": [
-        [
-          40.99252510848423,
-          -85.17422551800854
-        ],
-        [
-          40.992579629325576,
-          -85.1741381736514
-        ],
-        [
-          40.992551873645375,
-          -85.17406593135291
-        ],
-        [
-          40.992488902343645,
-          -85.17410262446506
-        ],
-        [
-          40.99248380002746,
-          -85.17419322342583
-        ]
-      ],
-      "elevation_m": null,
-      "provenance": "detected",
-      "confidence": 0.55,
-      "verification": "unreviewed"
+      "verification": "confirmed"
     },
     {
       "type": "bunker",
@@ -261,7 +231,45 @@
       "elevation_m": null,
       "provenance": "detected",
       "confidence": 0.55,
-      "verification": "unreviewed"
+      "verification": "confirmed"
+    },
+    {
+      "type": "bunker",
+      "name": "left fairway 2/3 up",
+      "coords": [
+        [
+          40.991675725332954,
+          -85.17328639291915
+        ],
+        [
+          40.991691991456875,
+          -85.17323918050906
+        ],
+        [
+          40.99166980197474,
+          -85.17318501002286
+        ],
+        [
+          40.99162852424088,
+          -85.17315996105836
+        ],
+        [
+          40.99159290630644,
+          -85.1731747162153
+        ],
+        [
+          40.991587618658336,
+          -85.17322184671664
+        ],
+        [
+          40.99161525083722,
+          -85.17326510939742
+        ]
+      ],
+      "elevation_m": null,
+      "provenance": "detected",
+      "confidence": 0.55,
+      "verification": "confirmed"
     }
   ]
 }
