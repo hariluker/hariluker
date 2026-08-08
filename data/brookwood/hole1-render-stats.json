@@ -1,0 +1,11 @@
+{
+  "frames": 346,
+  "render_s": 196.5,
+  "camera_checksum": "93b50e649a349b08",
+  "timings": {
+    "imagery_s": 14.1,
+    "terrain_s": 3.7,
+    "camera_s": 0.0,
+    "render_s": 196.5
+  }
+}

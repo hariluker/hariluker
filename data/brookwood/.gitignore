@@ -17,3 +17,7 @@ hole1-calibration-view.png
 !hole1.json
 !assets.json
 !overview-meta.json
+testframe-*.jpg
+check-*.jpg
+!hole1-camera-path.json
+!hole1-render-stats.json
