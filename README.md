@@ -4,7 +4,7 @@ A web SaaS that lets golf course staff generate premium, cinematic 10–12 secon
 
 ## Status
 
-**Phase 0 — Research & architecture.** No product code yet, by design.
+**Phase 2 (base render) — draft tier complete.** Phase 0 (architecture) and Phase 1 (Brookwood Hole 1 verified geometry) are done. The deterministic camera solver and the CPU draft-tier flyover render are working (`data/brookwood/hole1-flyover-draft.mp4`, byte-reproducible); the Blender/GPU premium tier is the next step and needs serverless GPU infrastructure.
 
 The Phase 0 deliverable is the architecture decision document:
 
