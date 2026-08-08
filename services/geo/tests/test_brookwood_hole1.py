@@ -43,10 +43,14 @@ def test_hole1_verification_reflects_owner_review(hole):
     assert hole.tee.provenance == Provenance.USER_ADJUSTED
     assert hole.green.verification == Verification.CONFIRMED
     assert hole.pin.verification == Verification.CONFIRMED
-    assert hole.centerline.verification == Verification.CONFIRMED
-    unreviewed = [f.name for f in hole.features
-                  if f.verification == Verification.UNREVIEWED]
-    assert set(unreviewed) == {"dogleg right cluster N", "dogleg right cluster S"}
+    # centerline redrawn onto the NE corridor after the owner flagged the
+    # first route as following the 10th; awaiting re-confirmation
+    assert hole.centerline.verification == Verification.UNREVIEWED
+    assert hole.centerline.provenance == Provenance.USER_ADJUSTED
+    unreviewed = {f.name or f.type.value for f in hole.features
+                  if f.verification == Verification.UNREVIEWED}
+    assert unreviewed == {"fairway_centerline", "dogleg right cluster N",
+                          "dogleg right cluster S"}
     for f in hole.features:
         if f.provenance == Provenance.DETECTED:
             assert f.confidence is not None

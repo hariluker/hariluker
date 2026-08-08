@@ -20,8 +20,8 @@ import numpy as np
 
 from .camera import CameraPath, US_FOOT_M
 
-SKY_TOP = np.array([224, 170, 112], dtype=np.float32)     # BGR: clear blue
-SKY_HORIZON = np.array([226, 223, 216], dtype=np.float32) # BGR: pale warm haze
+SKY_TOP = np.array([235, 148, 66], dtype=np.float32)      # BGR: vivid clear blue
+SKY_HORIZON = np.array([252, 232, 205], dtype=np.float32) # BGR: bright pale blue
 
 
 @dataclass

@@ -47,14 +47,19 @@ GREEN_OUTLINE = [
     (464046.0, 2092702.0), (464031.0, 2092732.0),
 ]
 GREEN_CENTER = (464074.0, 2092735.0)
+# Corrected 2026-08-08 (2nd owner review): the first rendered route drifted
+# into the 10TH fairway (the southwest of the two parallel corridors). The
+# 1st plays the NORTHEAST corridor from its tee, converging left to the
+# green. Former test point A was app-derived and never owner-verified; the
+# owner's correction overrides it.
 CENTERLINE = [
     TEE_BLUE,
-    (465030.0, 2091800.0),
-    (464800.0, 2091990.0),
-    (464523.0, 2092169.0),   # test point A: the landing zone
-    (464350.0, 2092350.0),
-    (464200.0, 2092530.0),
-    (464090.0, 2092680.0),
+    (465130.0, 2091845.0),
+    (464945.0, 2092040.0),
+    (464760.0, 2092230.0),
+    (464540.0, 2092400.0),
+    (464330.0, 2092560.0),
+    (464150.0, 2092670.0),
     GREEN_CENTER,
 ]
 # Major bunkers (approximate outlines; confidence noted per feature)
@@ -111,9 +116,11 @@ def build_hole(dem) -> HoleGeometry:
                 elevation_m=dem_sample_m(dem, *tee_ll),
                 provenance=Provenance.USER_ADJUSTED,
                 verification=Verification.CORRECTED),
+        # Redrawn after the owner flagged the first route as following the
+        # 10th; awaits re-confirmation against the new render.
         Feature(FeatureType.FAIRWAY_CENTERLINE, cl_ll,
-                provenance=Provenance.DETECTED, confidence=0.75,
-                verification=Verification.CONFIRMED),
+                provenance=Provenance.USER_ADJUSTED,
+                verification=Verification.UNREVIEWED),
         Feature(FeatureType.GREEN, green_ll,
                 elevation_m=dem_sample_m(dem, *pin_ll),
                 provenance=Provenance.DETECTED, confidence=0.8,

@@ -48,6 +48,7 @@ class CameraParams:
     end_short_of_pin_m: float = 45.0     # camera stops short, looking at pin
     imagery_res_m: float = 0.1524        # 6-inch source
     max_bank_deg: float = 7.0
+    lead_scale: float = 1.0              # <1 pitches the view down (low flight)
 
     @property
     def duration(self) -> float:
@@ -175,7 +176,7 @@ def solve_camera_path(
     pin_z = ground_z(*pin)
     look = np.zeros((n, 3))
     lead_m = np.interp(u, [0.0, 0.25, 0.6, 0.85, 1.0],
-                       [75.0, 110.0, 110.0, 40.0, 0.0])
+                       [75.0, 110.0, 110.0, 40.0, 0.0]) * params.lead_scale
     seg2 = np.linalg.norm(np.diff(track, axis=0), axis=1)
     s2 = np.concatenate([[0.0], np.cumsum(seg2)])
     cam_s = profile * s2[-1]

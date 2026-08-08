@@ -83,10 +83,32 @@ def main(data_dir: Path) -> None:
     print("build ground texture...")
     tex = build_ground_texture(BOUNDS, TEX_RES_FT, features_ft,
                                path_mask=None, trees=trees)
+
+    # 3D relief: shade the turf with a hillshade of the real lidar terrain so
+    # mounds, green complexes and swales read in 3D.
+    gy, gx = np.gradient(dem.array[0].astype(np.float32), 2.5)
+    az, alt = np.radians(315), np.radians(50)
+    slope = np.arctan(np.hypot(gx, gy) * 1.8)          # relief exaggeration
+    aspect = np.arctan2(-gx, gy)
+    hs = np.sin(alt) * np.cos(slope) + np.cos(alt) * np.sin(slope) * np.cos(az - aspect)
+    hs = np.clip(0.78 + 0.5 * (hs - hs.mean()), 0.72, 1.12).astype(np.float32)
+    shade = np.ones(tex.shape[:2], np.float32)
+    c0 = int((DEM_BOUNDS[0] - BOUNDS[0]) / TEX_RES_FT)
+    r0 = int((BOUNDS[3] - DEM_BOUNDS[3]) / TEX_RES_FT)
+    hs_big = cv2.resize(hs, (int((DEM_BOUNDS[2] - DEM_BOUNDS[0]) / TEX_RES_FT),
+                             int((DEM_BOUNDS[3] - DEM_BOUNDS[1]) / TEX_RES_FT)),
+                        interpolation=cv2.INTER_CUBIC)
+    shade[r0:r0 + hs_big.shape[0], c0:c0 + hs_big.shape[1]] = hs_big
+    shade = cv2.GaussianBlur(shade, (0, 0), 2.0)
+    tex = np.clip(tex.astype(np.float32) * (0.9 + 0.35 * (shade - 0.72) / 0.4
+                                            )[..., None], 0, 255).astype(np.uint8)
     cv2.imwrite(str(data_dir / "sim-ground-texture.jpg"), tex,
                 [cv2.IMWRITE_JPEG_QUALITY, 90])
 
-    params = CameraParams(par=hole.par)
+    # Low "tree-height" flight profile per owner direction.
+    params = CameraParams(par=hole.par, start_back_m=35.0, start_agl_m=12.0,
+                          cruise_agl_m=32.0, green_agl_m=22.0, end_agl_m=16.0,
+                          lead_scale=0.75)
     path = solve_camera_path(cl_m, pin_m, ground_z, params)
     scene = SimScene(texture=tex, origin_x_ft=BOUNDS[0], origin_y_ft=BOUNDS[3],
                      res_ft=TEX_RES_FT, ground_z_m=plane_z, trees=trees,

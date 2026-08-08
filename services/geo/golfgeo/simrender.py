@@ -22,21 +22,21 @@ from scipy.spatial import cKDTree
 from .camera import US_FOOT_M
 
 # ---- palette (BGR float 0-255) ---------------------------------------------
-COL = {
-    "outer":    np.array([60, 108, 92], np.float32),    # muted olive surround
-    "rough":    np.array([58, 122, 74], np.float32),
-    "fw_light": np.array([84, 168, 96], np.float32),
-    "fw_dark":  np.array([66, 148, 80], np.float32),
-    "fringe":   np.array([88, 176, 104], np.float32),
-    "gr_light": np.array([110, 200, 122], np.float32),
-    "gr_dark":  np.array([96, 184, 108], np.float32),
-    "tee":      np.array([92, 178, 100], np.float32),
-    "sand":     np.array([168, 214, 232], np.float32),
-    "sand_rim": np.array([120, 170, 196], np.float32),
+COL = {  # prime-summer palette (owner direction: bright green, clear day)
+    "outer":    np.array([64, 132, 78], np.float32),
+    "rough":    np.array([66, 150, 80], np.float32),
+    "fw_light": np.array([88, 196, 96], np.float32),
+    "fw_dark":  np.array([72, 176, 84], np.float32),
+    "fringe":   np.array([96, 200, 112], np.float32),
+    "gr_light": np.array([118, 222, 130], np.float32),
+    "gr_dark":  np.array([102, 206, 116], np.float32),
+    "tee":      np.array([100, 196, 108], np.float32),
+    "sand":     np.array([170, 220, 238], np.float32),
+    "sand_rim": np.array([130, 185, 205], np.float32),
     "path":     np.array([176, 178, 180], np.float32),
     "trunk":    np.array([48, 74, 96], np.float32),
-    "conifer":  np.array([46, 96, 40], np.float32),
-    "conifer2": np.array([56, 116, 52], np.float32),
+    "conifer":  np.array([44, 108, 38], np.float32),
+    "conifer2": np.array([58, 132, 52], np.float32),
 }
 SUN_DIR_TEX = np.array([0.55, -0.45])   # shadow offset direction in tex px (E, S->N flip handled)
 
@@ -234,27 +234,37 @@ def detect_trees_ndvi(ndvi: np.ndarray, bounds_ft, res_ft, aoi_bounds_ft,
     return trees
 
 
-def make_tree_sprites(seed=7) -> dict:
-    """Pre-rendered stylized BGRA sprites (deterministic)."""
+def make_tree_sprites(seed=7, scale=2) -> dict:
+    """Pre-rendered stylized BGRA sprites (deterministic, close-up ready)."""
     rng = np.random.default_rng(seed)
     sprites = {"conifer": []}
     for variant in range(3):
-        w, h = 256, 384
+        w, h = 256 * scale, 384 * scale
         img = np.zeros((h, w, 4), np.float32)
-        trunk_w = 14 + rng.integers(0, 6)
-        cv2.rectangle(img, (w // 2 - trunk_w // 2, h - 60),
-                      (w // 2 + trunk_w // 2, h - 4),
+        trunk_w = (14 + rng.integers(0, 6)) * scale
+        cv2.rectangle(img, (w // 2 - trunk_w // 2, h - 60 * scale),
+                      (w // 2 + trunk_w // 2, h - 4 * scale),
                       (*COL["trunk"].tolist(), 255), -1)
-        layers = 6
+        layers = 8
         for i in range(layers):
             frac = i / (layers - 1)
-            cy = int(30 + frac * (h - 120))
-            half = int((28 + frac * 92) * (1 + rng.uniform(-0.06, 0.06)))
+            cy = int((30 + frac * (h // scale - 120)) * scale)
+            half = int((24 + frac * 96) * (1 + rng.uniform(-0.08, 0.08)) * scale)
             col = COL["conifer"] * (1 - frac * 0.35) + COL["conifer2"] * (frac * 0.35)
-            shade = 0.85 + 0.3 * (1 - frac)
-            pts = np.array([[w // 2 - half, cy + 70], [w // 2 + half, cy + 70],
-                            [w // 2 + rng.integers(-8, 9), cy - 26]], np.int32)
+            shade = 0.82 + 0.34 * (1 - frac)
+            # jagged, slightly irregular tiers read better up close
+            jag = rng.integers(-6 * scale, 6 * scale + 1)
+            pts = np.array([
+                [w // 2 - half, cy + 60 * scale],
+                [w // 2 - half // 3, cy + 44 * scale],
+                [w // 2 + half // 3, cy + 44 * scale + jag // 2],
+                [w // 2 + half, cy + 60 * scale],
+                [w // 2 + jag, cy - 22 * scale],
+            ], np.int32)
             cv2.fillPoly(img, [pts], (*(col * shade).tolist(), 255), cv2.LINE_AA)
+        # subtle vertical shading for volume
+        grad = np.linspace(1.06, 0.88, w, dtype=np.float32)[None, :, None]
+        img[..., :3] *= grad
         img = cv2.GaussianBlur(img, (3, 3), 0)
         sprites["conifer"].append(np.clip(img, 0, 255).astype(np.uint8))
     return sprites
@@ -317,10 +327,11 @@ def draw_billboards(frame: np.ndarray, K, R, C, scene: SimScene, pin_m,
         if sp.size == 0:
             continue
         alpha = (sp[..., 3:4].astype(np.float32) / 255.0)
-        # distance haze on far trees
+        # per-tree deterministic tint variation + distance haze
+        tint = 0.90 + 0.18 * (((j * 2654435761) % 997) / 997.0)
         haze = np.clip((dist - 260.0) / 700.0, 0, 0.55)
-        col = sp[..., :3].astype(np.float32) * (1 - haze) + \
-            np.array([226, 223, 216], np.float32) * haze
+        col = sp[..., :3].astype(np.float32) * tint * (1 - haze) + \
+            np.array([252, 232, 205], np.float32) * haze
         region = out[dy0:dy1, dx0:dx1].astype(np.float32)
         out[dy0:dy1, dx0:dx1] = (region * (1 - alpha) + col * alpha
                                  ).astype(np.uint8)
