@@ -20,7 +20,7 @@ import numpy as np
 
 from .camera import CameraPath, US_FOOT_M
 
-SKY_TOP = np.array([205, 164, 122], dtype=np.float32)     # BGR: muted blue
+SKY_TOP = np.array([224, 170, 112], dtype=np.float32)     # BGR: clear blue
 SKY_HORIZON = np.array([226, 223, 216], dtype=np.float32) # BGR: pale warm haze
 
 
@@ -73,7 +73,8 @@ def rotation_world_to_cam(pos, look_at, roll_deg: float) -> np.ndarray:
 
 def render_frame(plane: OrthoPlane, K: np.ndarray, pos, look_at, roll_deg,
                  pin_m=None, haze_start_m: float = 220.0,
-                 haze_full_m: float = 900.0) -> np.ndarray:
+                 haze_full_m: float = 900.0,
+                 border_bgr: tuple | None = None) -> np.ndarray:
     h, w = int(K[1, 2] * 2), int(K[0, 2] * 2)
     R = rotation_world_to_cam(pos, look_at, roll_deg)
     C = np.asarray(pos, float)
@@ -87,9 +88,14 @@ def render_frame(plane: OrthoPlane, K: np.ndarray, pos, look_at, roll_deg,
     ])
     H_world = K @ R @ M
     H = H_world @ plane.g_matrix
-    ground = cv2.warpPerspective(
-        plane.image, H, (w, h),
-        flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+    if border_bgr is None:
+        ground = cv2.warpPerspective(
+            plane.image, H, (w, h),
+            flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+    else:
+        ground = cv2.warpPerspective(
+            plane.image, H, (w, h), flags=cv2.INTER_LINEAR,
+            borderMode=cv2.BORDER_CONSTANT, borderValue=border_bgr)
 
     # Per-pixel ray direction (coarse grid, upsampled) for sky mask + haze.
     step = 8

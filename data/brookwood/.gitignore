@@ -21,3 +21,7 @@ testframe-*.jpg
 check-*.jpg
 !hole1-camera-path.json
 !hole1-render-stats.json
+sim-t*.jpg
+sim-final.jpg
+sim-ground-texture.jpg
+!hole1-sim-stats.json
