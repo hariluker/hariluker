@@ -1,0 +1,19 @@
+# Reproducible intermediates (regenerate via services/geo/scripts/) — keep the
+# repo lean; the committed artifacts are the geometry, validation, QA packet,
+# license ledger, and the calibration overlay.
+overview.png
+overview-small.png
+overview-annotated.png
+hole1-area*.png
+tee-*.png
+green-zone*.png
+ne-clubhouse*.png
+corridor-*.png
+course-*.png
+course-ndvi.npy
+corridor-dem.npy
+hole1-calibration-view.png
+*.json
+!hole1.json
+!assets.json
+!overview-meta.json

@@ -1,0 +1,9 @@
+Brookwood Golf Club hole 1 (Blue tee): overall PASS
+  [PASS  ] completeness: Tee, green, and centerline are present.
+  [PASS  ] straight_line_vs_scorecard: Tee to green center is 522 yd in a straight line, consistent with the 520 yd scorecard.
+  [PASS  ] centerline_vs_scorecard: Fairway centerline measures 528 yd, within 7% of the 520 yd scorecard.
+  [PASS  ] centerline_endpoints: Centerline starts 0 m from the tee and ends on the green.
+  [PASS  ] par_vs_yardage: 520 yd is a conventional par-5 length.
+  [PASS  ] green_sanity: Green polygon is valid, 479 m², pin inside.
+  [PASS  ] elevation_sanity: Tee-green elevation change is 0.3 m.
+  [PASS  ] degeneracy: All geometry is well-formed.

@@ -1,0 +1,39 @@
+{
+  "crs": "EPSG:2967",
+  "transform": [
+    2.0,
+    0.0,
+    460655.52161538176,
+    0.0,
+    -2.0,
+    2096192.3033882699
+  ],
+  "shape": [
+    4265,
+    4265
+  ],
+  "res_ft_per_px": 2.0,
+  "center_wgs84": [
+    40.9905,
+    -85.171
+  ],
+  "source_year": 2024,
+  "tiles": [
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04602087_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04602090_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04602092_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04602095_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04622087_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04622090_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04622092_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04622095_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04652087_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04652090_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04652092_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04652095_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04672087_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04672090_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04672092_06.tif",
+    "https://gisimageryingov.s3.us-east-2.amazonaws.com/imageryoptimized/statewide/2024/SPE/06in/in2024_04672095_06.tif"
+  ]
+}
